@@ -30,7 +30,7 @@
     <h1>Set up a new Windows PC in one go.</h1>
     <p class="lede">Tick the apps you want, then download one small file and run it. EasyInstall installs everything silently, with no setup wizards to click through. Run the same file later and it updates them all.</p>
     <ol class="steps" id="how">
-      <li><b>Pick apps</b><span>From 200+ apps, or load a preset you saved.</span></li>
+      <li><b>Pick apps</b><span>Hover over any app to see what it does.</span></li>
       <li><b>Run the file</b><span>Approve one admin prompt, then walk away.</span></li>
       <li><b>Run it again later</b><span>Everything already installed gets updated.</span></li>
     </ol>
@@ -41,6 +41,19 @@
       <input type="search" id="search" placeholder="Search apps" aria-label="Search apps" autocomplete="off">
       <button class="btn ghost" id="presetsBtn" type="button">Presets</button>
       <button class="btn ghost" id="clearBtn" type="button" disabled>Clear</button>
+    </div>
+    <div class="wrap filters" role="group" aria-label="Filter apps">
+      <select id="catFilter" aria-label="Category"><option value="">All categories</option></select>
+      <span class="seg" role="group" aria-label="Price">
+        <button type="button" class="chip" data-price="" aria-pressed="true">Any price</button>
+        <button type="button" class="chip" data-price="free" aria-pressed="false">Free</button>
+        <button type="button" class="chip" data-price="freemium" aria-pressed="false">Free + paid plans</button>
+        <button type="button" class="chip" data-price="paid" aria-pressed="false">Paid</button>
+      </span>
+      <button type="button" class="chip" id="ossChip" aria-pressed="false">Open source</button>
+      <button type="button" class="chip" id="autoChip" aria-pressed="false">Installs automatically</button>
+      <button type="button" class="chip" id="pickedChip" aria-pressed="false">Selected</button>
+      <span class="showing"><span id="showing"></span> <button type="button" class="linkish" id="resetFilters" hidden>Reset</button></span>
     </div>
   </div>
 
@@ -125,6 +138,7 @@
   </div>
 </dialog>
 
+<div class="tip" id="tip" role="tooltip" hidden></div>
 <div class="toast" id="toast" role="status" hidden></div>
 <script src="/app.js" type="module"></script>
 </body>

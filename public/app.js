@@ -32,6 +32,7 @@ async function load() {
   byKey = new Map(apps.map(a => [a.key, a]));
   selected = new Set([...selected].filter(k => byKey.has(k)));
   setupKofi();
+  setupFilters();
   render();
   updateTray();
   if (config.googleClientId) setupGoogle();
@@ -45,12 +46,50 @@ function setupKofi() {
   document.querySelectorAll('[data-nokofi]').forEach(s => (s.hidden = !!config.kofiUrl));
 }
 
+// ---------- Filters
+
+const PRICE_LABEL = { free: 'Free', freemium: 'Free + paid plans', paid: 'Paid' };
+const SOURCE_LABEL = { winget: 'Installs with winget', msstore: 'Installs from the Microsoft Store', choco: 'Installs with Chocolatey', direct: 'Downloads from the developer', manual: 'Download it yourself from the developer’s site' };
+const filters = { cat: '', price: '', oss: false, picked: false, auto: false };
+
+function setupFilters() {
+  const sel = $('#catFilter');
+  for (const c of categories) { const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o); }
+  sel.addEventListener('change', () => { filters.cat = sel.value; render(); });
+  document.querySelectorAll('[data-price]').forEach(b => b.addEventListener('click', () => {
+    filters.price = b.dataset.price;
+    document.querySelectorAll('[data-price]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    render();
+  }));
+  for (const [id, key] of [['#ossChip', 'oss'], ['#pickedChip', 'picked'], ['#autoChip', 'auto']]) {
+    $(id).addEventListener('click', () => { filters[key] = !filters[key]; $(id).setAttribute('aria-pressed', filters[key]); render(); });
+  }
+  $('#resetFilters').addEventListener('click', resetFilters);
+}
+
+function resetFilters() {
+  Object.assign(filters, { cat: '', price: '', oss: false, picked: false, auto: false });
+  query = ''; $('#search').value = ''; $('#catFilter').value = '';
+  document.querySelectorAll('[data-price]').forEach(x => x.setAttribute('aria-pressed', x.dataset.price === ''));
+  for (const id of ['#ossChip', '#pickedChip', '#autoChip']) $(id).setAttribute('aria-pressed', 'false');
+  render();
+}
+
+const filtersActive = () => !!(query || filters.cat || filters.price || filters.oss || filters.picked || filters.auto);
+
 function matches(a) {
+  if (filters.cat && a.category !== filters.cat) return false;
+  if (filters.price && a.price !== filters.price) return false;
+  if (filters.oss && !a.open_source) return false;
+  if (filters.picked && !selected.has(a.key)) return false;
+  if (filters.auto && a.source === 'manual') return false;
   if (!query) return true;
-  return (a.name + ' ' + a.note + ' ' + a.category).toLowerCase().includes(query);
+  const hay = (a.name + ' ' + a.note + ' ' + a.category + ' ' + (a.description || '')).toLowerCase();
+  return query.split(/\s+/).every(w => hay.includes(w));
 }
 
 function render() {
+  hideTip();
   const grid = $('#grid');
   grid.textContent = '';
   let shown = 0;
@@ -70,9 +109,25 @@ function render() {
   }
   if (!shown) {
     const p = document.createElement('p'); p.className = 'empty';
-    p.textContent = `No apps match “${query}”.`;
+    p.textContent = query ? `No apps match “${query}” with these filters.` : 'No apps match these filters.';
     grid.appendChild(p);
   }
+  $('#showing').textContent = filtersActive() ? `Showing ${shown} of ${apps.length} apps` : `${apps.length} apps`;
+  $('#resetFilters').hidden = !filtersActive();
+}
+
+function badges(a) {
+  const frag = document.createDocumentFragment();
+  if (a.price && a.price !== 'free') { const b = document.createElement('span'); b.className = 'badge ' + a.price; b.textContent = a.price === 'paid' ? 'Paid' : 'Paid plans'; frag.appendChild(b); }
+  return frag;
+}
+
+function infoButton(a) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'info'; b.textContent = 'i';
+  b.setAttribute('aria-label', 'About ' + a.name);
+  b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); tipFor === a ? hideTip() : showTip(a, b.closest('.app'), true); });
+  return b;
 }
 
 function appRow(a) {
@@ -88,10 +143,13 @@ function appRow(a) {
     let s = h.querySelector('small');
     if (n) { if (!s) { s = document.createElement('small'); h.appendChild(s); } s.textContent = n + ' picked'; } else if (s) s.remove();
   });
+  cb.addEventListener('focus', () => { if (cb.matches(':focus-visible')) showTip(a, label); });
+  cb.addEventListener('blur', hideTip);
   const t = document.createElement('span'); t.className = 't';
-  const n = document.createElement('span'); n.className = 'n'; n.textContent = a.name; t.appendChild(n);
+  const n = document.createElement('span'); n.className = 'n'; n.textContent = a.name; n.appendChild(badges(a)); t.appendChild(n);
   if (a.note) { const d = document.createElement('span'); d.className = 'd'; d.textContent = a.note; t.appendChild(d); }
-  label.append(cb, t);
+  label.append(cb, t, infoButton(a));
+  hoverTip(label, a);
   return label;
 }
 
@@ -100,12 +158,54 @@ function manualRow(a) {
   div.className = 'app manual';
   const ico = document.createElement('span'); ico.className = 'ico'; ico.textContent = '↗'; ico.setAttribute('aria-hidden', 'true');
   const t = document.createElement('span'); t.className = 't';
+  const nm = document.createElement('span'); nm.className = 'n';
   const link = document.createElement('a'); link.href = a.homepage; link.target = '_blank'; link.rel = 'noopener'; link.textContent = a.name;
+  nm.append(link, badges(a));
   const d = document.createElement('span'); d.className = 'd'; d.textContent = (a.note ? a.note + '. ' : '') + 'Download it yourself.';
-  t.append(link, d);
-  div.append(ico, t);
+  t.append(nm, d);
+  div.append(ico, t, infoButton(a));
+  hoverTip(div, a);
   return div;
 }
+
+// ---------- Tooltips: hover on desktop, the (i) button on touch screens, focus for keyboards
+
+let tipFor = null, tipTimer = 0;
+const canHover = matchMedia('(hover: hover)').matches;
+
+function hoverTip(el, a) {
+  if (!canHover) return;
+  el.addEventListener('mouseenter', () => { clearTimeout(tipTimer); tipTimer = setTimeout(() => showTip(a, el), 350); });
+  el.addEventListener('mouseleave', () => { clearTimeout(tipTimer); hideTip(); });
+}
+
+function showTip(a, anchor, pinned) {
+  const tip = $('#tip');
+  tip.textContent = '';
+  const h = document.createElement('b'); h.textContent = a.name;
+  const p = document.createElement('p'); p.textContent = a.description || a.note || 'No description yet.';
+  const meta = document.createElement('div'); meta.className = 'meta';
+  const bits = [PRICE_LABEL[a.price] || 'Free'];
+  if (a.open_source) bits.push('Open source');
+  if (a.requires) bits.push({ 'gpu:nvidia': 'NVIDIA GPUs only', 'gpu:amd': 'AMD GPUs only', 'gpu:intel': 'Intel graphics only', 'cpu:intel': 'Intel CPUs only', 'cpu:amd': 'AMD CPUs only' }[a.requires] || a.requires);
+  meta.textContent = bits.join(' · ');
+  const how = document.createElement('div'); how.className = 'how'; how.textContent = SOURCE_LABEL[a.source] || '';
+  tip.append(h, p, meta, how);
+  tip.hidden = false;
+  tipFor = a;
+  tip.dataset.pinned = pinned ? '1' : '';
+  const r = anchor.getBoundingClientRect();
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  const left = Math.max(8, Math.min(r.left, innerWidth - tw - 8));
+  const below = r.bottom + 6 + th < innerHeight - 90;
+  tip.style.left = left + 'px';
+  tip.style.top = (below ? r.bottom + 6 : Math.max(8, r.top - th - 6)) + 'px';
+}
+
+function hideTip() { const t = $('#tip'); if (t) t.hidden = true; tipFor = null; }
+document.addEventListener('click', e => { if (tipFor && !e.target.closest('#tip, .info')) hideTip(); });
+addEventListener('scroll', () => { if (tipFor) hideTip(); }, { passive: true });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') hideTip(); });
 
 function saveSelection() {
   store.set('ei.selection', [...selected]);

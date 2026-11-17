@@ -47,7 +47,7 @@ export default {
 
 async function catalog(env) {
   const { results } = await env.DB.prepare(
-    "SELECT key, name, category, source, note, homepage, requires FROM apps WHERE enabled = 1 ORDER BY category, sort, name"
+    "SELECT key, name, category, source, note, homepage, requires, description, price, open_source FROM apps WHERE enabled = 1 ORDER BY category, sort, name"
   ).all();
   const order = await categoryOrder(env);
   return json({ apps: results, categories: order }, 200, { 'cache-control': 'public, max-age=60' });
@@ -198,7 +198,7 @@ function validateApp(a) {
   const app = {
     key: s(a.key).toLowerCase(), name: s(a.name), category: s(a.category), source: s(a.source), pkg: s(a.pkg),
     url: s(a.url), url_pattern: s(a.url_pattern), args: s(a.args), detect: s(a.detect), requires: s(a.requires),
-    note: s(a.note), homepage: s(a.homepage), enabled: a.enabled ? 1 : 0, sort: Number.isFinite(+a.sort) ? Math.round(+a.sort) : 0,
+    note: s(a.note), homepage: s(a.homepage), description: s(a.description), price: s(a.price) || 'free', open_source: a.open_source ? 1 : 0, enabled: a.enabled ? 1 : 0, sort: Number.isFinite(+a.sort) ? Math.round(+a.sort) : 0,
   };
   if (!KEY_RE.test(app.key)) errors.push('Key must be lowercase letters, digits and hyphens.');
   if (!app.name || app.name.length > 80) errors.push('Name is required (80 characters at most).');
@@ -215,6 +215,8 @@ function validateApp(a) {
   if (app.detect) { try { new RegExp(app.detect); } catch { errors.push('Detect pattern is not a valid regular expression.'); } }
   if (app.requires && !/^(gpu|cpu):(nvidia|amd|intel)$/.test(app.requires)) errors.push('Requires must be like gpu:nvidia, gpu:amd, gpu:intel, cpu:intel or cpu:amd.');
   if (app.homepage && !/^https?:\/\/\S+$/.test(app.homepage)) errors.push('Homepage must be a web address.');
+  if (!['free', 'freemium', 'paid'].includes(app.price)) errors.push('Price must be free, freemium or paid.');
+  if (app.description.length > 300) errors.push('Description can be 300 characters at most.');
   if (app.source === 'manual' && !app.homepage) errors.push('Manual apps need a homepage link.');
   return { app, errors };
 }
@@ -231,12 +233,12 @@ async function admin(req, env, p, who) {
     const { app, errors } = validateApp({ ...body, key: body.key || m[1] });
     if (errors.length) return json({ errors }, 400);
     if (app.key !== m[1]) await env.DB.prepare('DELETE FROM apps WHERE key = ?').bind(m[1]).run();
-    await env.DB.prepare(`INSERT INTO apps (key, name, category, source, pkg, url, url_pattern, args, detect, requires, note, homepage, enabled, sort, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch())
+    await env.DB.prepare(`INSERT INTO apps (key, name, category, source, pkg, url, url_pattern, args, detect, requires, note, homepage, description, price, open_source, enabled, sort, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, unixepoch())
       ON CONFLICT(key) DO UPDATE SET name=excluded.name, category=excluded.category, source=excluded.source, pkg=excluded.pkg, url=excluded.url,
         url_pattern=excluded.url_pattern, args=excluded.args, detect=excluded.detect, requires=excluded.requires, note=excluded.note,
-        homepage=excluded.homepage, enabled=excluded.enabled, sort=excluded.sort, updated_at=unixepoch()`)
-      .bind(app.key, app.name, app.category, app.source, app.pkg, app.url, app.url_pattern, app.args, app.detect, app.requires, app.note, app.homepage, app.enabled, app.sort).run();
+        homepage=excluded.homepage, description=excluded.description, price=excluded.price, open_source=excluded.open_source, enabled=excluded.enabled, sort=excluded.sort, updated_at=unixepoch()`)
+      .bind(app.key, app.name, app.category, app.source, app.pkg, app.url, app.url_pattern, app.args, app.detect, app.requires, app.note, app.homepage, app.description, app.price, app.open_source, app.enabled, app.sort).run();
     return json({ app });
   }
   if (m && req.method === 'PATCH') {

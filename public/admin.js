@@ -55,15 +55,16 @@ function row(a) {
   const t2 = document.createElement('td');
   const b = document.createElement('b'); b.textContent = a.name; t2.appendChild(b);
   if (a.note) { const d = document.createElement('div'); d.className = 'muted small'; d.textContent = a.note; t2.appendChild(d); }
+  if (!a.description) { const d = document.createElement('div'); d.className = 'error small'; d.textContent = 'No tooltip yet'; t2.appendChild(d); }
   const t3 = document.createElement('td');
-  const s = document.createElement('span'); s.className = 'src' + (a.source === 'manual' ? ' manual' : ''); s.textContent = a.source + (a.requires ? ' · ' + a.requires : ''); t3.appendChild(s);
+  const s = document.createElement('span'); s.className = 'src' + (a.source === 'manual' ? ' manual' : ''); s.textContent = a.source + (a.requires ? ' · ' + a.requires : '') + ' · ' + (a.price || 'free') + (a.open_source ? ' · OSS' : ''); t3.appendChild(s);
   const t4 = document.createElement('td'); const c = document.createElement('code'); c.textContent = pkgText(a); t4.appendChild(c);
   const t5 = document.createElement('td'); const e = document.createElement('button'); e.className = 'btn ghost sm'; e.type = 'button'; e.textContent = 'Edit'; e.onclick = () => openEdit(a); t5.appendChild(e);
   tr.append(t1, t2, t3, t4, t5);
   return tr;
 }
 
-const FIELDS = ['name', 'key', 'category', 'source', 'pkg', 'url', 'url_pattern', 'args', 'detect', 'requires', 'sort', 'note', 'homepage'];
+const FIELDS = ['name', 'key', 'category', 'source', 'pkg', 'url', 'url_pattern', 'args', 'detect', 'requires', 'sort', 'note', 'description', 'price', 'homepage'];
 const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
 
 function syncSourceFields() {
@@ -79,9 +80,10 @@ function syncSourceFields() {
 function openEdit(a) {
   editing = a; confirmDelete = false;
   $('#editTitle').textContent = a ? 'Edit ' + a.name : 'Add app';
-  const v = a || { source: 'winget', category: categories[0] || '', sort: 1000, enabled: 1 };
+  const v = a || { source: 'winget', category: categories[0] || '', sort: 1000, enabled: 1, price: 'free' };
   for (const f of FIELDS) $('#f-' + f).value = v[f] ?? '';
   $('#f-enabled').checked = !!v.enabled;
+  $('#f-open_source').checked = !!v.open_source;
   $('#delBtn').hidden = !a; $('#delBtn').textContent = 'Delete';
   $('#errors').hidden = true;
   syncSourceFields();
@@ -92,7 +94,7 @@ $('#f-source').addEventListener('change', syncSourceFields);
 $('#f-name').addEventListener('input', () => { if (!editing) $('#f-key').value = slug($('#f-name').value); });
 
 $('#saveBtn').addEventListener('click', async () => {
-  const body = { enabled: $('#f-enabled').checked };
+  const body = { enabled: $('#f-enabled').checked, open_source: $('#f-open_source').checked };
   for (const f of FIELDS) body[f] = $('#f-' + f).value;
   const oldKey = editing ? editing.key : body.key;
   if (!editing && apps.some(a => a.key === body.key)) { showErrors(['That key is already used by another app.']); return; }

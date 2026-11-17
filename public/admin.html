@@ -32,6 +32,7 @@
   .edit-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
   .edit-form label { display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); }
   .edit-form label.wide { grid-column: 1 / -1; }
+  .edit-form textarea { font: inherit; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; resize: vertical; }
   .edit-form input, .edit-form select { font: inherit; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0; }
   .edit-form .help { font-size: 12px; }
   .errors { color: var(--err); font-size: 13px; margin: 0; padding-left: 18px; }
@@ -92,7 +93,16 @@
         </select>
       </label>
       <label>Sort order in category<input id="f-sort" type="number" step="1"></label>
-      <label class="wide">Short description<input id="f-note" maxlength="120"></label>
+      <label class="wide">Short note (shown under the name)<input id="f-note" maxlength="120"></label>
+      <label class="wide">Tooltip: what it does and who it's for<textarea id="f-description" maxlength="300" rows="3"></textarea></label>
+      <label>Price
+        <select id="f-price">
+          <option value="free">Free</option>
+          <option value="freemium">Free, with paid plans</option>
+          <option value="paid">Paid</option>
+        </select>
+      </label>
+      <label><span><input type="checkbox" id="f-open_source"> Open source</span></label>
       <label class="wide">Homepage<input id="f-homepage" placeholder="https://"></label>
       <label><span><input type="checkbox" id="f-enabled"> Shown on the site</span></label>
     </form>
