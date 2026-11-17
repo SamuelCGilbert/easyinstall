@@ -39,7 +39,10 @@ if (-not $IsAdmin -and -not $DryRun) {
   Write-Host 'EasyInstall needs administrator rights to install apps for everyone on this PC.'
   Write-Host 'Approve the Windows prompt, and the install continues in a new window.'
   try {
-    Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -NoExit -Command \`"irm '$SelfUrl' | iex\`""
+    # Save the script and run the file. Windows security blocks launching "irm ... | iex" command lines.
+    $Ps1 = Join-Path $env:TEMP 'EasyInstall.ps1'
+    Invoke-WebRequest -Uri $SelfUrl -OutFile $Ps1 -UseBasicParsing
+    Start-Process powershell.exe -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -NoExit -File \`"$Ps1\`""
   } catch {
     Write-Host 'The administrator prompt was declined, so nothing was installed.' -ForegroundColor Red
   }
@@ -223,7 +226,15 @@ export function buildCmd({ selfUrl, count }) {
     '  powershell.exe -NoProfile -Command "Start-Process -FilePath \'%~f0\' -Verb RunAs"',
     '  exit /b',
     ')',
-    `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "irm '${selfUrl}' | iex"`,
+    // Download the script to a file and run that. Windows security blocks "irm ... | iex" launched from a .cmd.
+    'set "EI_PS1=%TEMP%\\EasyInstall.ps1"',
+    `curl.exe -fsSL -o "%EI_PS1%" "${selfUrl}"`,
+    'if %errorlevel% neq 0 (',
+    '  echo Couldn\'t download the EasyInstall script. Check your internet connection and run this file again.',
+    '  pause',
+    '  exit /b 1',
+    ')',
+    'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%EI_PS1%"',
     'echo.',
     'pause',
     '',

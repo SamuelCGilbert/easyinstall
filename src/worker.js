@@ -80,7 +80,8 @@ async function installer(req, env, ctx, url, asCmd) {
   const byKey = new Map(results.map(r => [r.key, r]));
   const apps = valid.map(k => byKey.get(k)).filter(Boolean);
   const unknown = keys.filter(k => !byKey.has(k));
-  const selfUrl = `${url.origin}/i/${apps.map(a => a.key).join('+')}`;
+  const dry = url.searchParams.get('dry') === '1';
+  const selfUrl = `${url.origin}/i/${apps.map(a => a.key).join('+')}${dry ? '?dry=1' : ''}`;
   if (!apps.length) return text('None of those apps are available to install automatically any more. Pick apps at ' + site, 404);
 
   if (asCmd) {
