@@ -273,4 +273,16 @@ $('#signOutBtn').addEventListener('click', async () => {
   toast('Signed out. Presets stay in this browser.');
 });
 
+let confirmDelete = false;
+$('#deleteDataBtn').addEventListener('click', async () => {
+  const btn = $('#deleteDataBtn');
+  if (!confirmDelete) { confirmDelete = true; btn.textContent = 'Click again to delete'; return; }
+  try {
+    const r = await fetch('/api/account', { method: 'DELETE' });
+    if (!r.ok) throw new Error((await r.json()).error);
+    setSignedIn(false); confirmDelete = false; btn.textContent = 'Delete my synced data';
+    toast('Synced data deleted. Presets stay in this browser.');
+  } catch (e) { syncError(e.message || 'Couldn’t delete your data. Try again.'); }
+});
+
 load();

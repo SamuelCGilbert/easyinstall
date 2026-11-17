@@ -65,7 +65,7 @@
 
 <footer class="wrap site-foot">
   <span>EasyInstall installs apps with winget, Chocolatey and vendor downloads. It isn't affiliated with the apps listed.</span>
-  <a data-kofi href="#" hidden>Buy me a coffee</a>
+  <span><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="https://github.com/SamuelCGilbert/easyinstall" rel="noopener">GitHub</a> <a data-kofi href="#" hidden>· Buy me a coffee</a></span>
 </footer>
 
 <div class="tray" id="tray" hidden>
@@ -118,7 +118,7 @@
       </div>
       <div id="syncSignedIn" hidden>
         <p class="muted">Synced to <b id="syncEmail"></b>.</p>
-        <button class="btn ghost sm" id="signOutBtn" type="button">Sign out</button>
+        <div class="row"><button class="btn ghost sm" id="signOutBtn" type="button">Sign out</button><button class="btn ghost sm" id="deleteDataBtn" type="button">Delete my synced data</button></div>
       </div>
       <p class="error small" id="syncError" hidden></p>
     </div>

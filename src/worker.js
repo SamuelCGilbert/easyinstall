@@ -24,6 +24,7 @@ export default {
       if (p === '/api/auth/logout' && req.method === 'POST') return json({ ok: true }, 200, { 'set-cookie': 'ei_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax' });
       if (p === '/api/me' && req.method === 'GET') { const s = await readSession(req, env); return json(s ? { signedIn: true, email: s.email } : { signedIn: false }); }
       if (p === '/api/presets') return presets(req, env);
+      if (p === '/api/account' && req.method === 'DELETE') return deleteAccount(req, env);
 
       if (p === '/admin' || p.startsWith('/admin/') || p === '/admin.html' || p === '/admin.js' || p.startsWith('/api/admin/')) {
         const who = await adminIdentity(req, env);
@@ -161,6 +162,16 @@ async function presets(req, env) {
     return json({ presets: clean });
   }
   return json({ error: 'Method not allowed' }, 405);
+}
+
+async function deleteAccount(req, env) {
+  const s = await readSession(req, env);
+  if (!s) return json({ error: 'Sign in first.' }, 401);
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM presets WHERE sub = ?').bind(s.sub),
+    env.DB.prepare('DELETE FROM users WHERE sub = ?').bind(s.sub),
+  ]);
+  return json({ ok: true }, 200, { 'set-cookie': 'ei_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax' });
 }
 
 // ---------- Admin (protected by Cloudflare Access)
