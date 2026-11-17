@@ -1,0 +1,14 @@
+{
+  "name": "easyinstall",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "db:local": "wrangler d1 migrations apply easyinstall --local",
+    "db:remote": "wrangler d1 migrations apply easyinstall --remote",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

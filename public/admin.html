@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>EasyInstall admin</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/style.css">
+<style>
+  body { padding-bottom: 40px; }
+  .adm-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding-block: 20px 8px; }
+  .adm-head h1 { font-size: 28px; }
+  .adm-head .who { color: var(--muted); font-size: 13px; margin-left: auto; }
+  .adm-tools { display: flex; flex-wrap: wrap; gap: 8px; padding-block: 8px 16px; position: sticky; top: 0; background: var(--bg); z-index: 3; }
+  .adm-tools input { flex: 1 1 220px; }
+  .stats { font-size: 13px; color: var(--muted); align-self: center; }
+  .tbl { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .tbl-wrap { overflow-x: auto; }
+  .tbl th { text-align: left; font: 600 12px var(--f-body); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding: 10px; border-bottom: 1px solid var(--line); background: var(--bg); }
+  .tbl td { padding: 8px 10px; border-top: 1px solid var(--line); vertical-align: top; font-size: 14px; }
+  .tbl tr.off td:not(:first-child) { opacity: .45; }
+  .tbl tr.cat td { background: var(--bg); font: 700 14px var(--f-display); padding-top: 14px; }
+  .tbl code { font: 12.5px var(--f-mono); overflow-wrap: anywhere; }
+  .src { font-size: 12px; font-weight: 600; padding: 2px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); white-space: nowrap; }
+  .src.manual { background: var(--warn-bg); color: var(--warn-ink); }
+  .switch { appearance: none; width: 36px; height: 20px; border-radius: 999px; background: var(--line); position: relative; cursor: pointer; margin: 0; }
+  .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--panel); transition: left .15s; }
+  .switch:checked { background: var(--accent); }
+  .switch:checked::after { left: 18px; }
+  .edit-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+  .edit-form label { display: grid; gap: 4px; font-size: 12.5px; color: var(--muted); }
+  .edit-form label.wide { grid-column: 1 / -1; }
+  .edit-form input, .edit-form select { font: inherit; font-size: 14px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+  .edit-form .help { font-size: 12px; }
+  .errors { color: var(--err); font-size: 13px; margin: 0; padding-left: 18px; }
+  .actions { display: flex; gap: 8px; justify-content: space-between; }
+  dialog { width: min(760px, calc(100vw - 32px)); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="adm-head">
+    <a class="logo" href="/"><svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="7" fill="var(--accent)"/><path d="M16 8v11m-5-5 5 5 5-5M10 24h12" stroke="var(--on-accent)" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+    <h1>App catalog</h1>
+    <span class="who" id="who"></span>
+  </div>
+  <div class="adm-tools">
+    <input type="search" id="q" placeholder="Search name, package or category" aria-label="Search apps">
+    <button class="btn ghost" id="showOff" type="button" aria-pressed="false">Only hidden apps</button>
+    <button class="btn primary" id="addBtn" type="button">Add app</button>
+    <span class="stats" id="stats"></span>
+  </div>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr><th>Shown</th><th>App</th><th>Source</th><th>Package / link</th><th></th></tr></thead>
+      <tbody id="rows"><tr><td colspan="5">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<dialog id="editDlg" aria-labelledby="editTitle">
+  <form method="dialog" class="dlg-head"><h2 id="editTitle">Edit app</h2><button class="x" aria-label="Close">×</button></form>
+  <div class="dlg-body">
+    <form class="edit-form" id="editForm">
+      <label>Name<input id="f-name" required maxlength="80"></label>
+      <label>Key (used in install links)<input id="f-key" required pattern="[a-z0-9][a-z0-9\-]*" maxlength="48"></label>
+      <label>Category<input id="f-category" list="catList" required maxlength="60"></label>
+      <label>Source
+        <select id="f-source">
+          <option value="winget">winget</option>
+          <option value="msstore">Microsoft Store (via winget)</option>
+          <option value="choco">Chocolatey</option>
+          <option value="direct">Direct download</option>
+          <option value="manual">Manual (link only)</option>
+        </select>
+      </label>
+      <label class="wide" data-for="winget msstore choco">Package ID<input id="f-pkg" maxlength="100" placeholder="e.g. VideoLAN.VLC"><span class="help muted" id="pkgHelp"></span></label>
+      <label class="wide" data-for="direct">Download URL, or a page to search when a pattern is set<input id="f-url" placeholder="https://"></label>
+      <label class="wide" data-for="direct">Link pattern (optional regex; the first match on the page is downloaded)<input id="f-url_pattern"></label>
+      <label data-for="direct">Silent install switches<input id="f-args" placeholder="/S"></label>
+      <label data-for="direct">Already-installed pattern (regex on the program name)<input id="f-detect" placeholder="^Wootility"></label>
+      <label>Only install on
+        <select id="f-requires">
+          <option value="">Any PC</option>
+          <option value="gpu:nvidia">PCs with an NVIDIA GPU</option>
+          <option value="gpu:amd">PCs with an AMD GPU</option>
+          <option value="gpu:intel">PCs with Intel graphics</option>
+          <option value="cpu:intel">PCs with an Intel CPU</option>
+          <option value="cpu:amd">PCs with an AMD CPU</option>
+        </select>
+      </label>
+      <label>Sort order in category<input id="f-sort" type="number" step="1"></label>
+      <label class="wide">Short description<input id="f-note" maxlength="120"></label>
+      <label class="wide">Homepage<input id="f-homepage" placeholder="https://"></label>
+      <label><span><input type="checkbox" id="f-enabled"> Shown on the site</span></label>
+    </form>
+    <ul class="errors" id="errors" hidden></ul>
+    <div class="actions">
+      <button class="btn ghost" id="delBtn" type="button">Delete</button>
+      <button class="btn primary" id="saveBtn" type="button">Save</button>
+    </div>
+  </div>
+</dialog>
+<datalist id="catList"></datalist>
+<div class="toast" id="toast" role="status" hidden></div>
+<script src="/admin.js" type="module"></script>
+</body>
+</html>

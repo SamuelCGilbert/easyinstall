@@ -1,0 +1,29 @@
+name = "easyinstall"
+main = "src/worker.js"
+compatibility_date = "2025-09-01"
+workers_dev = false
+preview_urls = false
+routes = [{ pattern = "easyinstall.dev", custom_domain = true }]
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "404-page"
+run_worker_first = ["/api/*", "/i/*", "/dl/*", "/admin", "/admin/*", "/admin.html", "/admin.js"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "easyinstall"
+database_id = "7eb1be63-9c5e-438b-b7e3-5ec24a4291e1"
+migrations_dir = "migrations"
+
+[vars]
+SITE_URL = "https://easyinstall.dev"
+# Your Ko-fi page, e.g. https://ko-fi.com/yourname. Donation buttons stay hidden while empty.
+KOFI_URL = ""
+# OAuth client ID from Google Cloud Console. Google sign-in stays hidden while empty.
+GOOGLE_CLIENT_ID = ""
+# Cloudflare Access, protecting /admin. Team domain looks like yourteam.cloudflareaccess.com
+ACCESS_TEAM_DOMAIN = "netplexx.cloudflareaccess.com"
+ACCESS_AUD = "caa3ca4dde9bd69a88db62f3559ea83db816ba3ad49eb375979309b7eb577802"
+# Secret (set with `npx wrangler secret put SESSION_SECRET`): SESSION_SECRET

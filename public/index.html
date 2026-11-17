@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EasyInstall: set up a new Windows PC in one go</title>
+<meta name="description" content="Pick the apps you want, download one small file, and EasyInstall installs them all silently. Run it again any time to update everything.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="site">
+  <div class="wrap bar">
+    <a class="logo" href="/" aria-label="EasyInstall home">
+      <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="7" fill="var(--accent)"/><path d="M16 8v11m-5-5 5 5 5-5M10 24h12" stroke="var(--on-accent)" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>easyinstall<span class="tld">.dev</span></span>
+    </a>
+    <nav>
+      <a href="#how">How it works</a>
+      <a class="coffee" data-kofi href="#" hidden>☕ Buy me a coffee</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <h1>Set up a new Windows PC in one go.</h1>
+    <p class="lede">Tick the apps you want, then download one small file and run it. EasyInstall installs everything silently, with no setup wizards to click through. Run the same file later and it updates them all.</p>
+    <ol class="steps" id="how">
+      <li><b>Pick apps</b><span>From 200+ apps, or load a preset you saved.</span></li>
+      <li><b>Run the file</b><span>Approve one admin prompt, then walk away.</span></li>
+      <li><b>Run it again later</b><span>Everything already installed gets updated.</span></li>
+    </ol>
+  </section>
+
+  <div class="toolbar-wrap">
+    <div class="wrap toolbar">
+      <input type="search" id="search" placeholder="Search apps" aria-label="Search apps" autocomplete="off">
+      <button class="btn ghost" id="presetsBtn" type="button">Presets</button>
+      <button class="btn ghost" id="clearBtn" type="button" disabled>Clear</button>
+    </div>
+  </div>
+
+  <section class="wrap">
+    <div id="grid" class="grid" aria-live="polite">
+      <p class="loading">Loading apps…</p>
+    </div>
+  </section>
+
+  <section class="wrap about">
+    <div>
+      <h2>Why Windows may warn you</h2>
+      <p>The first time you run the file, Windows SmartScreen may say <q>Windows protected your PC</q>. Click <b>More info</b>, then <b>Run anyway</b>. That warning appears for any program that isn't signed with a paid code-signing certificate. The file itself is a few lines of text you can open in Notepad: it downloads the install script from this site and runs it.</p>
+    </div>
+    <div>
+      <h2>Keeping it free</h2>
+      <p>EasyInstall is free and has no ads. A code-signing certificate would make that warning go away, and donations are what pay for it. If EasyInstall saved you an afternoon, a coffee helps.</p>
+      <a class="btn coffee-btn" data-kofi href="#" hidden>☕ Buy me a coffee on Ko-fi</a>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap site-foot">
+  <span>EasyInstall installs apps with winget, Chocolatey and vendor downloads. It isn't affiliated with the apps listed.</span>
+  <a data-kofi href="#" hidden>Buy me a coffee</a>
+</footer>
+
+<div class="tray" id="tray" hidden>
+  <div class="wrap tray-in">
+    <div class="tray-count"><b id="count">0</b> <span id="countLabel">apps selected</span></div>
+    <div class="tray-actions">
+      <button class="btn ghost" id="savePresetBtn" type="button">Save as preset</button>
+      <button class="btn primary" id="getBtn" type="button">Get installer</button>
+    </div>
+  </div>
+</div>
+
+<dialog id="getDlg" aria-labelledby="getTitle">
+  <form method="dialog" class="dlg-head"><h2 id="getTitle">Your installer</h2><button class="x" aria-label="Close">×</button></form>
+  <div class="dlg-body">
+    <p class="muted" id="getSummary"></p>
+    <a class="btn primary big" id="dlLink" href="#">Download EasyInstall.cmd</a>
+    <div class="warn">
+      <b>Windows will probably warn you.</b> If you see <q>Windows protected your PC</q>, click <b>More info</b>, then <b>Run anyway</b>. The warning shows because the file isn't code-signed. Signing costs money every year, so <a data-kofi href="#" hidden>donations</a><span data-nokofi>donations</span> are what will make it go away.
+    </div>
+    <details>
+      <summary>Or paste one line into PowerShell</summary>
+      <p class="muted">Open PowerShell (search for it in the Start menu), paste this, and press Enter.</p>
+      <div class="code"><code id="oneLiner"></code><button class="btn ghost sm" id="copyBtn" type="button">Copy</button></div>
+    </details>
+    <div id="manualBox" hidden>
+      <h3>Get these yourself</h3>
+      <p class="muted">These apps need a sign-in, a license or a vendor-specific download, so EasyInstall can't install them for you.</p>
+      <ul id="manualList"></ul>
+    </div>
+    <p class="muted small">Share this selection: <a id="shareLink" href="#"></a></p>
+    <a class="btn coffee-btn" data-kofi href="#" hidden>☕ Buy me a coffee</a>
+  </div>
+</dialog>
+
+<dialog id="presetsDlg" aria-labelledby="presetsTitle">
+  <form method="dialog" class="dlg-head"><h2 id="presetsTitle">Presets</h2><button class="x" aria-label="Close">×</button></form>
+  <div class="dlg-body">
+    <p class="muted">A preset is a saved set of apps. Load one to tick those apps again.</p>
+    <ul class="presets" id="presetList"></ul>
+    <form class="row" id="presetForm">
+      <input type="text" id="presetName" placeholder="Name this selection, e.g. Family laptop" maxlength="80" aria-label="Preset name" required>
+      <button class="btn primary" type="submit" id="presetSave">Save</button>
+    </form>
+    <p class="muted small" id="presetHint"></p>
+    <div class="sync" id="syncBox" hidden>
+      <div id="syncSignedOut">
+        <p class="muted">Presets are saved in this browser. Sign in to keep them on all your devices.</p>
+        <div id="gsiButton"></div>
+      </div>
+      <div id="syncSignedIn" hidden>
+        <p class="muted">Synced to <b id="syncEmail"></b>.</p>
+        <button class="btn ghost sm" id="signOutBtn" type="button">Sign out</button>
+      </div>
+      <p class="error small" id="syncError" hidden></p>
+    </div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden></div>
+<script src="/app.js" type="module"></script>
+</body>
+</html>
