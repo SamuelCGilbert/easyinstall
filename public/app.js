@@ -342,6 +342,15 @@ async function refreshMe() {
   } catch {}
 }
 
+// Google draws its own button; pick its dark or light style to match the page.
+function renderGoogleButton() {
+  if (!window.google?.accounts?.id) return;
+  const el = $('#gsiButton');
+  el.textContent = '';
+  const dark = window.eiTheme ? window.eiTheme.isDark() : matchMedia('(prefers-color-scheme: dark)').matches;
+  google.accounts.id.renderButton(el, { theme: dark ? 'filled_black' : 'outline', size: 'large', text: 'signin_with', shape: 'pill' });
+}
+
 function setupGoogle() {
   $('#syncBox').hidden = false;
   setSignedIn(false);
@@ -362,7 +371,8 @@ function setupGoogle() {
         } catch (e) { syncError(e.message || 'Sign-in failed. Try again.'); }
       },
     });
-    google.accounts.id.renderButton($('#gsiButton'), { theme: 'outline', size: 'large', text: 'signin_with', shape: 'pill' });
+    renderGoogleButton();
+    addEventListener('ei-theme', renderGoogleButton);
   };
   document.head.appendChild(s);
 }

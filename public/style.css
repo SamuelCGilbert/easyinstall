@@ -9,8 +9,9 @@
   --f-mono: "JetBrains Mono", Consolas, ui-monospace, monospace;
   color-scheme: light;
 }
+/* Dark palette: follows the system unless the theme switch picked one (data-theme on <html>). */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #0e121a; --panel: #161c27; --ink: #e7ebf3; --muted: #9aa5b8; --line: #283043;
     --accent: #6f93ff; --accent-soft: #1c2747; --on-accent: #0b1020;
     --coffee: #f2c94c; --coffee-ink: #2a1e00; --warn-bg: #2f2710; --warn-ink: #f1dca0; --err: #ff8a80;
@@ -18,7 +19,26 @@
     color-scheme: dark;
   }
 }
+:root[data-theme="dark"] {
+  --bg: #0e121a; --panel: #161c27; --ink: #e7ebf3; --muted: #9aa5b8; --line: #283043;
+  --accent: #6f93ff; --accent-soft: #1c2747; --on-accent: #0b1020;
+  --coffee: #f2c94c; --coffee-ink: #2a1e00; --warn-bg: #2f2710; --warn-ink: #f1dca0; --err: #ff8a80;
+  --shadow: 0 1px 2px rgb(0 0 0 / .3), 0 8px 24px rgb(0 0 0 / .25);
+  color-scheme: dark;
+}
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+/* Theme switch */
+.theme-btn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--muted); cursor: pointer; display: grid; place-content: center; padding: 0; }
+.theme-btn:hover { color: var(--ink); border-color: var(--accent); }
+.theme-btn svg { width: 17px; height: 17px; }
+.theme-btn .to-light { display: none; }
+.dark-ui .theme-btn .to-dark { display: none; }
+.dark-ui .theme-btn .to-light { display: block; }
+
+/* Google's sign-in button is an iframe; a light color-scheme on its box stops the browser painting a white backdrop behind it. */
+#gsiButton { color-scheme: light; min-height: 44px; }
 html { scroll-padding-top: 140px; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body); -webkit-font-smoothing: antialiased; padding-bottom: 96px; }
 a { color: var(--accent); }
