@@ -22,7 +22,7 @@ SITE_URL = "https://easyinstall.dev"
 # Your Ko-fi page, e.g. https://ko-fi.com/yourname. Donation buttons stay hidden while empty.
 KOFI_URL = "https://ko-fi.com/SamG"
 # OAuth client ID from Google Cloud Console. Google sign-in stays hidden while empty.
-GOOGLE_CLIENT_ID = ""
+GOOGLE_CLIENT_ID = "209670532262-fd1k7b9c52tqpq426qistciqri5f80tl.apps.googleusercontent.com"
 # Cloudflare Access, protecting /admin. Team domain looks like yourteam.cloudflareaccess.com
 ACCESS_TEAM_DOMAIN = "netplexx.cloudflareaccess.com"
 ACCESS_AUD = "caa3ca4dde9bd69a88db62f3559ea83db816ba3ad49eb375979309b7eb577802"
