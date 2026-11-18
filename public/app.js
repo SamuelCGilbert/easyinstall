@@ -72,7 +72,7 @@ function resetFilters() {
   query = ''; $('#search').value = ''; $('#catFilter').value = '';
   document.querySelectorAll('[data-price]').forEach(x => x.setAttribute('aria-pressed', x.dataset.price === ''));
   for (const id of ['#ossChip', '#pickedChip', '#autoChip']) $(id).setAttribute('aria-pressed', 'false');
-  render();
+  render(); updateTray();
 }
 
 const filtersActive = () => !!(query || filters.cat || filters.price || filters.oss || filters.picked || filters.auto);
@@ -126,7 +126,17 @@ function infoButton(a) {
   const b = document.createElement('button');
   b.type = 'button'; b.className = 'info'; b.textContent = 'i';
   b.setAttribute('aria-label', 'About ' + a.name);
-  b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); tipFor === a ? hideTip() : showTip(a, b.closest('.app'), true); });
+  b.addEventListener('click', e => {
+    e.preventDefault(); e.stopPropagation();
+    clearTimeout(tipTimer);
+    if (tipFor === a && $('#tip').dataset.pinned) hideTip(); else showTip(a, b.closest('.app'), true);
+  });
+  b.addEventListener('focus', () => { if (b.matches(':focus-visible')) showTip(a, b.closest('.app')); });
+  b.addEventListener('blur', () => { if (!$('#tip').dataset.pinned) hideTip(); });
+  if (canHover) {
+    b.addEventListener('mouseenter', () => { clearTimeout(tipTimer); tipTimer = setTimeout(() => showTip(a, b.closest('.app')), 120); });
+    b.addEventListener('mouseleave', () => { clearTimeout(tipTimer); if (!$('#tip').dataset.pinned) hideTip(); });
+  }
   return b;
 }
 
@@ -143,13 +153,10 @@ function appRow(a) {
     let s = h.querySelector('small');
     if (n) { if (!s) { s = document.createElement('small'); h.appendChild(s); } s.textContent = n + ' picked'; } else if (s) s.remove();
   });
-  cb.addEventListener('focus', () => { if (cb.matches(':focus-visible')) showTip(a, label); });
-  cb.addEventListener('blur', hideTip);
   const t = document.createElement('span'); t.className = 't';
   const n = document.createElement('span'); n.className = 'n'; n.textContent = a.name; n.appendChild(badges(a)); t.appendChild(n);
   if (a.note) { const d = document.createElement('span'); d.className = 'd'; d.textContent = a.note; t.appendChild(d); }
   label.append(cb, t, infoButton(a));
-  hoverTip(label, a);
   return label;
 }
 
@@ -164,20 +171,13 @@ function manualRow(a) {
   const d = document.createElement('span'); d.className = 'd'; d.textContent = (a.note ? a.note + '. ' : '') + 'Download it yourself.';
   t.append(nm, d);
   div.append(ico, t, infoButton(a));
-  hoverTip(div, a);
   return div;
 }
 
-// ---------- Tooltips: hover on desktop, the (i) button on touch screens, focus for keyboards
+// ---------- App details: only from the (i) button (hover it, click to pin, or tab to it)
 
 let tipFor = null, tipTimer = 0;
 const canHover = matchMedia('(hover: hover)').matches;
-
-function hoverTip(el, a) {
-  if (!canHover) return;
-  el.addEventListener('mouseenter', () => { clearTimeout(tipTimer); tipTimer = setTimeout(() => showTip(a, el), 350); });
-  el.addEventListener('mouseleave', () => { clearTimeout(tipTimer); hideTip(); });
-}
 
 function showTip(a, anchor, pinned) {
   const tip = $('#tip');
@@ -218,7 +218,7 @@ function updateTray() {
   $('#tray').hidden = n === 0;
   $('#count').textContent = n;
   $('#countLabel').textContent = n === 1 ? 'app selected' : 'apps selected';
-  $('#clearBtn').disabled = n === 0;
+  $('#clearBtn').disabled = n === 0 && !query;
 }
 
 // Keep the selection in catalog order so the same picks always make the same link.
@@ -246,8 +246,13 @@ $('#copyBtn').addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(text); toast('Copied. Paste it into PowerShell.'); }
   catch { const r = document.createRange(); r.selectNodeContents($('#oneLiner')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); toast('Press Ctrl+C to copy'); }
 });
-$('#search').addEventListener('input', e => { query = e.target.value.trim().toLowerCase(); render(); });
-$('#clearBtn').addEventListener('click', () => { selected.clear(); saveSelection(); render(); toast('Selection cleared'); });
+$('#search').addEventListener('input', e => { query = e.target.value.trim().toLowerCase(); render(); updateTray(); });
+$('#clearBtn').addEventListener('click', () => {
+  const had = selected.size;
+  selected.clear(); query = ''; $('#search').value = '';
+  saveSelection(); render();
+  toast(had ? 'Selection and search cleared' : 'Search cleared');
+});
 
 // ---------- Presets (saved in this browser; synced when signed in)
 
